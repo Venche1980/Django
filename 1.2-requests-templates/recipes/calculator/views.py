@@ -1,3 +1,4 @@
+from django.http import HttpResponse
 from django.shortcuts import render
 
 DATA = {
@@ -19,12 +20,28 @@ DATA = {
     # можете добавить свои рецепты ;)
 }
 
-# Напишите ваш обработчик. Используйте DATA как источник данных
-# Результат - render(request, 'calculator/index.html', context)
-# В качестве контекста должен быть передан словарь с рецептом:
-# context = {
-#   'recipe': {
-#     'ингредиент1': количество1,
-#     'ингредиент2': количество2,
-#   }
-# }
+def recipe_view(request, dish):
+    # Проверяем, существует ли рецепт для данного блюда
+    if dish not in DATA:
+        return HttpResponse(f"Рецепт для {dish} не найден.", status=404)
+
+    # Получаем количество порций из параметров запроса (по умолчанию 1)
+    servings = request.GET.get('servings', 1)
+    try:
+        servings = int(servings)
+        if servings <= 0:
+            raise ValueError()
+    except ValueError:
+        return HttpResponse("Неверное значение параметра servings. Ожидалось положительное целое число.", status=400)
+
+    # Рассчитываем ингредиенты для указанного количества порций
+    recipe = DATA[dish]
+    scaled_recipe = {ingredient: amount * servings for ingredient, amount in recipe.items()}
+
+    # Формируем контекст для шаблона
+    context = {
+        'recipe': scaled_recipe,
+    }
+
+    # Рендерим шаблон с контекстом
+    return render(request, 'calculator/index.html', context)

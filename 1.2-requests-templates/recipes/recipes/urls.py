@@ -15,7 +15,9 @@ Including another URLconf
 """
 
 from django.urls import path
+from calculator.views import recipe_view  # Импортируем нашу view-функцию
 
 urlpatterns = [
-    # здесь зарегистрируйте вашу view-функцию
+    # Регистрируем маршрут для рецептов
+    path('<str:dish>/', recipe_view, name='recipe'),
 ]
