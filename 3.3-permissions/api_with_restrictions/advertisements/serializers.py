@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from .models import Advertisement
+
+from .models import Advertisement, AdvertisementStatusChoices
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -23,7 +24,7 @@ class AdvertisementSerializer(serializers.ModelSerializer):
     class Meta:
         model = Advertisement
         fields = ('id', 'title', 'description', 'creator',
-                  'status', 'created_at', )
+                  'status', 'created_at',)
 
     def create(self, validated_data):
         """Метод для создания"""
@@ -39,24 +40,15 @@ class AdvertisementSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         """Метод для валидации. Вызывается при создании и обновлении."""
+
         # Проверяем, что у пользователя не больше 10 открытых объявлений
-        user = self.context["request"].user
-
-        # Определяем, какое действие выполняется (создание или обновление)
-        creating_ad = not self.instance
-
-        # Для обновления проверяем, не меняется ли статус с CLOSED на OPEN
-        changing_to_open = False
-        if not creating_ad and self.instance.status == AdvertisementStatusChoices.CLOSED and \
-                data.get('status') == AdvertisementStatusChoices.OPEN:
-            changing_to_open = True
+        request = self.context["request"]
 
         # Если создаем новое объявление или меняем статус с CLOSED на OPEN
-        if (creating_ad and data.get('status', AdvertisementStatusChoices.OPEN) == AdvertisementStatusChoices.OPEN) or \
-                changing_to_open:
+        if request.method == "POST" or data.get("status") != "CLOSED":
             # Подсчитываем количество открытых объявлений пользователя
             open_advertisements_count = Advertisement.objects.filter(
-                creator=user,
+                creator=request.user,
                 status=AdvertisementStatusChoices.OPEN
             ).count()
 
